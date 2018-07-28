@@ -1,0 +1,21 @@
+object Preview: TPreview
+  StyleName = 'Page'
+  Size.Width = 420.000000000000000000
+  Size.Height = 628.000000000000000000
+  Size.PlatformDefault = False
+  OnResize = FrameResize
+  object Page: TLayout
+    StyleName = 'Preview'
+    Align = Top
+    Size.Width = 420.000000000000000000
+    Size.Height = 1081.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object PaintBox1: TPaintBox
+      Size.Width = 2512.000000000000000000
+      Size.Height = 3488.000000000000000000
+      Size.PlatformDefault = False
+      OnPaint = PaintBox1Paint
+    end
+  end
+end
