@@ -1,0 +1,63 @@
+object Error: TError
+  Left = 0
+  Top = 0
+  BorderStyle = ToolWindow
+  Caption = 'Problem'
+  ClientHeight = 177
+  ClientWidth = 327
+  Position = MainFormCenter
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object Button1: TButton
+    Position.X = 216.000000000000000000
+    Position.Y = 128.000000000000000000
+    TabOrder = 0
+    Text = 'OK'
+    OnClick = Button1Click
+  end
+  object Label1: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 145.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Uknown object detected.'
+    TabOrder = 1
+  end
+  object Label2: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 48.000000000000000000
+    Text = 'Name'
+    TabOrder = 2
+  end
+  object Label3: TLabel
+    Position.X = 24.000000000000000000
+    Position.Y = 80.000000000000000000
+    Size.Width = 41.000000000000000000
+    Size.Height = 17.000000000000000000
+    Size.PlatformDefault = False
+    Text = 'Value'
+    TabOrder = 3
+  end
+  object Edit1: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 4
+    Position.X = 72.000000000000000000
+    Position.Y = 48.000000000000000000
+    Size.Width = 233.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Edit2: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 5
+    Position.X = 72.000000000000000000
+    Position.Y = 80.000000000000000000
+    Size.Width = 233.000000000000000000
+    Size.Height = 22.000000000000000000
+    Size.PlatformDefault = False
+  end
+end

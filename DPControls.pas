@@ -11,7 +11,7 @@ unit DPControls;
 interface
 uses System.Types, System.UITypes, System.Classes, System.Generics.Collections,
      System.SysUtils, FMX.Graphics, FMX.Types, FMX.Objects, FMX.Dialogs,
-     DPFile, DPColors, XML.XMLDoc, XML.XMLintf;
+     DPFile, DPColors, DPError, XML.XMLDoc, XML.XMLintf;
 
 const
 
@@ -48,6 +48,7 @@ public
   function PenWidth: single;
   function IsFrameEntry(const Name: string; const Value: string): boolean;
   procedure Draw(Canvas: TCanvas; const ClipRect: TRectF; const Opacity: single = 1);
+  procedure DrawGuide(Canvas: TCanvas; const ClipRect: TRectF; const Opacity: single = 1);
   constructor Create;
 end;
 
@@ -56,18 +57,18 @@ TDPFont = class
     FStyles: TFontStyles;
     FCharSet: Byte;
     FColor: TAlphaColor;
-    FHeight: Integer;
+    FHeight: Single;
     FName: TFontName;
     FWidth: single;
     procedure SetWidth(const Value: single);
     procedure setFontStyles(value: string);
-    function getHeight: Integer;
-    procedure setHeight(const Value: Integer);
+    function getHeight: Single;
+    procedure setHeight(const Value: single);
   public
     VFactor: single;
     property CharSet: Byte read FCharset write FCharset;
     property Color: TAlphaColor read FColor write FColor;
-    property Height: Integer read getHeight write setHeight;
+    property Height: single read getHeight write setHeight;
     property Width: single read FWidth write SetWidth;
     property Name: TFontName read FName write FName;
     property Styles: TFontStyles read FStyles write FStyles;
@@ -493,7 +494,7 @@ begin
     if s = 'COLOR' then
       BoxColor := ColorToAlphaColor(t)
     else
-      showmessage('Unknown TFrxMemoView: ' +Node.AttributeNodes[i].NodeName + ' - ' +
+      Error.Show('TFrxMemoView', Node.AttributeNodes[i].NodeName + ' - ' +
         Node.AttributeNodes[i].Text);
   end;
 end;
@@ -521,46 +522,6 @@ end;
 procedure TDPTextBox.Draw(Canvas: TCanvas; const Zoom: single = 1);
 var r,p: TRectF;
 
-  procedure setPen(const value: TSide);
-  begin
-    Canvas.Stroke.Color := FFrame.Line[value].Color;
-    Canvas.Stroke.Kind := FFrame.Line[value].Style;
-    Canvas.Stroke.Thickness := FFrame.Line[value].Width;
-  end;
-
-  procedure DrawFrame;
-  var p: TPointF;
-  begin
-    if TSide.Top in FFrame.Typ then
-    begin
-      p.X := ClipRect.Right;
-      p.Y := ClipRect.Top;
-      setPen(TSide.Top);
-      Canvas.DrawLine(ClipRect.TopLeft, p, FOpacity);
-    end;
-    if TSide.Right in FFrame.Typ then
-    begin
-      p.X := ClipRect.Right;
-      p.Y := ClipRect.Top;
-      SetPen(TSide.Right);
-      Canvas.DrawLine(p, ClipRect.BottomRight, FOpacity);
-    end;
-    if TSide.Bottom in FFrame.Typ then
-    begin
-      p.X := ClipRect.Left;
-      p.Y := ClipRect.Bottom;
-      SetPen(TSide.Bottom);
-      Canvas.DrawLine(ClipRect.BottomRight ,p , FOpacity);
-    end;
-    if TSide.Left in FFrame.Typ then
-    begin
-      p.X := ClipRect.Left;
-      p.Y := ClipRect.Bottom;
-      SetPen(TSide.Left);
-      Canvas.DrawLine(ClipRect.TopLeft, p, FOpacity);
-    end;
-  end;
-
 begin
   r := ClipRect;
   if BoxColor <> 0 then
@@ -570,19 +531,20 @@ begin
   end;
   if FParentFont then
   begin
-    Canvas.Font.Size := FPage.Font.FHeight * VFactor;
+    Canvas.Font.Size := FPage.Font.FHeight * Font.VFactor;
     Canvas.Font.Family := FPage.Font.FName;
     Canvas.Font.Style := FPage.Font.FStyles;
   end
   else
   begin
-    Canvas.Font.Size := Font.FHeight * VFactor;
+    Canvas.Font.Size := Font.FHeight * Font.VFactor;
     Canvas.Font.Family := Font.FName;
     Canvas.Font.Style := Font.FStyles;
   end;
   Canvas.Fill.Color := Font.Color;
   Canvas.FillText(r, FText, false, FOpacity, [{TFillTextFlag.ftRightToLeft}], FHAlign, FValign);
   FFrame.Draw(Canvas, r, FOpacity);
+  FFrame.DrawGuide(Canvas, r);
   //Canvas.FillText(r, FText, false, 1, [{TFillTextFlag.ftRightToLeft}], TTextAlign.taCenter, TTextAlign.taCenter);
 end;
 
@@ -596,8 +558,10 @@ var s: string;
 begin
   s := uppercase(value);
   result := TTextAlign.Leading;
-  if s = 'HACENTER' then result := TTextAlign.Center;
-  if s = 'HALEFT' then result := TTextAlign.Trailing;
+  if s = 'HACENTER' then result := TTextAlign.Center
+  else
+  if s = 'HARIGHT' then result := TTextAlign.Trailing
+  else
   if s = 'HABLOCK' then result := TTextAlign.Center;
 end;
 
@@ -606,7 +570,8 @@ var s: string;
 begin
   s := uppercase(value);
   result := TTextAlign.Center;
-  if s = 'VATOP' then result := TTextAlign.Leading;
+  if s = 'VATOP' then result := TTextAlign.Leading
+  else
   if s = 'VABOTTOM' then result := TTextAlign.Trailing;
 end;
 
@@ -679,7 +644,7 @@ begin
     if s = 'PICTURE.PROPDATA' then
       loadPicture(t)
     else
-      showmessage('Unknown Image: ' +Node.AttributeNodes[i].NodeName + ' - ' + t);
+      Error.Show('TFrxPictureView', Node.AttributeNodes[i].NodeName + ' - ' + t);
   end;
 end;
 
@@ -767,7 +732,7 @@ begin
     if s = 'DIAGONAL' then
       FDiagonal := StrToBoolDef(t, True)
     else
-      showmessage('Unknown Line: ' + Node.AttributeNodes[i].NodeName + ' - ' + t);
+      Error.Show('TFrxLineView', Node.AttributeNodes[i].NodeName + ' - ' + t);
   end;
 end;
 
@@ -814,7 +779,7 @@ begin
     if s = 'SHAPE' then
       SetShape(t)
     else
-      showmessage('Unknown Shape: ' + s + ' - ' + t);
+      Error.Show('TFrxShapeView', s + ' - ' + t);
   end;
 
 end;
@@ -874,7 +839,7 @@ begin
   if s = 'SKTRIANGLE' then
     Shape := TShapeType.skTriangle
   else
-    showmessage('Unknown shape type: ' + value);
+    Error.Show('TFrxShapeView - Shape', value);
 end;
 
 procedure TDPShape.setShapeValue(const Value: TShapeType);
@@ -887,14 +852,14 @@ end;
 constructor TDPFont.Create;
 begin
   inherited;
-  VFactor := 11;
+  VFactor := 4.17;
   FColor := TAlphaColors.Black;
   FName := 'System';
   FHeight := 11;
   FStyles := [];
 end;
 
-function TDPFont.getHeight: Integer;
+function TDPFont.getHeight: Single;
 begin
   result := FHeight;
 end;
@@ -909,7 +874,7 @@ begin
   if s = 'FONT.COLOR' then
     FColor := ColorToAlphaColor(Value)
   else
-  if s = 'FONT.HEIGHT' then FHeight := round(abs(StrToIntDef(Value, 0)) / 3.5) //3.77953)
+  if s = 'FONT.HEIGHT' then Height := round(abs(StrToIntDef(Value, 0)) * 0.75)
   else
   if s = 'FONT.NAME' then FName := Value
   else
@@ -929,7 +894,7 @@ begin
   if (i and 8) = 8 then include(FStyles, TFontStyle.fsStrikeOut);
 end;
 
-procedure TDPFont.setHeight(const Value: Integer);
+procedure TDPFont.setHeight(const Value: single);
 begin
   FHeight := Value;
 end;
@@ -1011,10 +976,10 @@ begin
       if uppercase(t) = 'POLANDSCAPE' then
         FOrientation := TScreenOrientation.Landscape
       else
-        showmessage('Unknown orientation: ' + t);
+        Error.Show('TFrxReportPage - Orientation', t);
     end
     else
-      showmessage('Unknown: ' +Node.AttributeNodes[i].NodeName + ' - ' +
+      Error.Show('TFrxReportPage', Node.AttributeNodes[i].NodeName + ' - ' +
         Node.AttributeNodes[i].Text);
   end;
   for i := 0 to Node.ChildNodes.Count - 1 do
@@ -1031,7 +996,7 @@ begin
     if uppercase(Node.ChildNodes[i].NodeName) = 'TFRXPICTUREVIEW' then
       TDPImage.CreateFromNode(Node.ChildNodes[i], self)
     else
-      showmessage('Unknown: ' + Node.ChildNodes[i].NodeName);
+      Error.Show('TFrxReportPage - Unknown', Node.ChildNodes[i].NodeName);
   end;
   //showmessage('Items: ' + inttostr(Length(FItems)));
 end;
@@ -1157,7 +1122,11 @@ begin
   end;
   if (n = nil) or(uppercase(n.NodeName) <> 'TFRXREPORT') then
   begin
-    showmessage('Unexpected file.');
+    if n = nil then
+      s := 'not open'
+    else
+      s := n.NodeName;
+    Error.Show(extractFileName(FileName) , 'Unexpected file. - ' + s);
     exit;
   end;
   for i := 0 to n.AttributeNodes.Count - 1 do
@@ -1190,14 +1159,14 @@ begin
     else
     if ReportOptions.IsEntry(s, t) then
     else
-      showmessage('Unknown TFrxReport: ' + n.AttributeNodes[i].NodeName + ': ' + t);
+      Error.Show('TFrxReport', n.AttributeNodes[i].NodeName + ': ' + t);
   end;
   for i := 0 to n.ChildNodes.Count - 1 do
   begin
     if upperCase(n.ChildNodes[i].NodeName) = 'TFRXDATAPAGE' then
     begin
       if DataPage <> nil then
-        showmessage('Error: Datapage already initialised.')
+        Error.Show('Hint', 'Datapage already initialised.')
       else
         DataPage := TDPDataPage.CreateFromNode(n.ChildNodes[i]);
     end
@@ -1207,10 +1176,9 @@ begin
       setLength(FPages, length(FPages) + 1);
       FPages[High(FPages)] := TDPPage.CreateFromNode(n.ChildNodes[i]);
       Pages_.Add(FPages[High(FPages)]);
-      showmessage(FPages[High(FPages)].Name);
     end
     else
-      showmessage('Unexpected item: ' + n.ChildNodes[i].NodeName);
+      Error.Show('TFrxReport - Unexpected item', n.ChildNodes[i].NodeName);
 
   end;
   //f.Free;
@@ -1251,7 +1219,7 @@ begin
     if s = 'WIDTH' then
       FWidth := StrToIntDef(Node.AttributeNodes[i].Text, 0)
     else
-      showmessage('Unknown DataPage: ' + Node.AttributeNodes[i].NodeName + ' - ' +
+      Error.Show('TFrxDataPage', Node.AttributeNodes[i].NodeName + ' - ' +
         Node.AttributeNodes[i].Text);
   end;
 
@@ -1357,6 +1325,54 @@ begin
   end;
 end;
 
+procedure TControlFrame.DrawGuide(Canvas: TCanvas; const ClipRect: TRectF;
+  const Opacity: single = 1);
+
+const long: single = 20;
+var p, d: TPointF;
+
+begin
+  Canvas.Stroke.Color := TAlphaColors.Gray;
+  Canvas.Stroke.Kind := TBrushKind.Solid;;
+  Canvas.Stroke.Thickness := 2;
+    begin
+      p.X := ClipRect.Left + long;
+      p.Y := ClipRect.Top;
+      Canvas.DrawLine(ClipRect.TopLeft, p, Opacity);
+      p.X := ClipRect.Left;
+      p.Y := ClipRect.Top + long;
+      Canvas.DrawLine(ClipRect.TopLeft, p, Opacity);
+    end;
+    begin
+      p.X := ClipRect.Right - long;
+      p.Y := ClipRect.Bottom;
+      Canvas.DrawLine(p, ClipRect.BottomRight, Opacity);
+      p.X := ClipRect.Right;
+      p.Y := ClipRect.Bottom - long;
+      Canvas.DrawLine(ClipRect.BottomRight, p, Opacity);
+    end;
+    begin
+      d.X := ClipRect.Left;
+      d.Y := ClipRect.Bottom;
+      p.X := ClipRect.Left + long;
+      p.Y := ClipRect.Bottom;
+      Canvas.DrawLine(d ,p , Opacity);
+      p.X := ClipRect.Left;
+      p.Y := ClipRect.Bottom - long;
+      Canvas.DrawLine(d ,p , Opacity);
+    end;
+    begin
+      d.X := ClipRect.Right;
+      d.Y := ClipRect.Top;
+      p.X := ClipRect.Right - long;
+      p.Y := ClipRect.Top;
+      Canvas.DrawLine(d, p, Opacity);
+      p.X := ClipRect.Right;
+      p.Y := ClipRect.Top + long;
+      Canvas.DrawLine(d, p, Opacity);
+    end;
+end;
+
 function TControlFrame.getTyp: integer;
 begin
 result := 0;
@@ -1403,7 +1419,7 @@ begin
     if s = 'BOTTOMLINE.WIDTH' then
       Line[TSide.Bottom].Width := StrToFloatDef(Value, 1)
     else
-      showmessage('Unknown Frame: ' + s);
+      Error.Show('Unknown Frame Item', s);
   end
   else
     result := false;

@@ -7,7 +7,7 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.ListBox, FMX.Printer,
   DPPreview, DPControls, FMX.Objects, Xml.xmldom, Xml.XmlTransform,
-  System.ImageList, FMX.ImgList, FMX.Menus;
+  System.ImageList, FMX.ImgList, FMX.Menus, FMX.Layouts;
 
 type
   TForm1 = class(TForm)
@@ -17,13 +17,14 @@ type
     SpeedButton2: TSpeedButton;
     ZoomBox: TComboBox;
     PrintDialog1: TPrintDialog;
-    ScrollVert: TScrollBar;
     Image1: TImage;
     XMLTransform1: TXMLTransform;
     OpenDialog1: TOpenDialog;
     SpeedButton3: TSpeedButton;
     SpeedButton4: TSpeedButton;
     ImageList1: TImageList;
+    Label1: TLabel;
+    ScrollBox1: TScrollBox;
 
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -34,11 +35,16 @@ type
     procedure ToolBar1Resize(Sender: TObject);
     procedure SpeedButton3Click(Sender: TObject);
     procedure SpeedButton4Click(Sender: TObject);
+    procedure FormMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; var Handled: Boolean);
+    procedure ZoomBoxClosePopup(Sender: TObject);
   private
     PreView1: TPreview;
     tb1: TDPTextBox;
     rp: TDPReport;
     procedure setPageZoom(const zoom: single);
+    function WidthZoom: single;
+    function HeightZoom: single;
 
   public
     { Public declarations }
@@ -60,12 +66,13 @@ var tb: TDPTextBox;
 begin
   rp:= TDPReport.Create;
 
-  Preview1 := TPreview.Create(Application);
-  Preview1.Width := ClientWidth - 60;
+  Preview1 := TPreview.Create(ScrollBox1);
+  Preview1.Width := Preview1.Page.Width;
   Preview1.Position.X := 20;
   Preview1.Position.Y := Toolbar1.Height + 10;
-  Preview1.Height := ClientHeight - 40;
-  Preview1.Parent := Form1;
+  Preview1.Height := Preview1.Page.Height;
+  Preview1.Parent := ScrollBox1;
+  Preview1.Position.X := 15 + ToolBar1.Height;
 
   tb1 := TDPTextBox.Create(Preview1.CurrentPage);
   tb1.Left := 30;
@@ -128,43 +135,49 @@ begin
   ZoomBox.Items.Add('200%');
   ZoomBox.Items.Add('PageWidth');
   ZoomBox.Items.Add('WholePage');
-  ZoomBox.ItemIndex := 3;
+  ZoomBox.ItemIndex := 0;
 
 //  showmessage(fr.Name);
 end;
 
-procedure TForm1.FormResize(Sender: TObject);
+procedure TForm1.FormMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; var Handled: Boolean);
+var r: single;
 begin
-  Preview1.Height := ClientHeight - 30 - ToolBar1.Height;
-  Preview1.Position.X := 15 + ToolBar1.Height;
+  if ssCtrl in Shift then
+  begin
+    r := Preview1.page.scale.x;
+    if wheeldelta < 0 then
+      r := r - 0.025
+    else
+    if wheeldelta > 0 then
+      r := r + 0.05;
+    Preview1.Zoom := r;
+  end;
+
 end;
 
-{procedure TForm1.Preview1Panel1Paint(Sender: TObject; Canvas: TCanvas);
-var i: integer;
+procedure TForm1.FormResize(Sender: TObject);
+var r: single;
 begin
-//  with preview1.FPanel1.Canvas do
-  begin
-    showmessage('canvas ' + inttostr(integer(preview1.PaintBox1.Canvas)));
-//    stroke.color := TAlphaColors.Grey;
-//    Stroke.Thickness := 2;
- //   Stroke.Kind := TBrushKind.Solid;
- //   Fill.Kind := TBrushKind.Solid;
- //   Fill.Color := TAlphaColors.White;
- //   FillRect(preview1.Panel1.ClipRect, 0, 0, AllCorners, 100);
+  ScrollBox1.Height := ClientHeight - Toolbar1.Height;
+  case zoombox.ItemIndex of
+    6: r := WidthZoom;
+    7: r := HeightZoom;
+    else r:= Preview1.Zoom;
   end;
-//  For i := Low(Preview1.TextBoxes) to high(Preview1.TextBoxes) do
-//    Preview1.TextBoxes[i].Draw(preview1.Panel1.canvas);
-//  For i := Low(Preview1.Images) to high(Preview1.Images) do
-//    Preview1.Images[i].Draw(preview1.Panel1.canvas);
-//  Preview1.show;
-end; }
+  Preview1.Zoom := r;
+end;
 
+function TForm1.HeightZoom: single;
+begin
+  result := (ScrollBox1.Height - 60) / Preview1.PaintBox1.Height;
+end;
 
 procedure TForm1.Preview1Resize(Sender: TObject);
 begin
   Preview1.FrameResize(Sender);
-  Preview1.Page.Height := Preview1.Height;
-  Preview1.Page.Width := Height / 1.414;
+
   Preview1.Page.Scale.X := 1;
   Preview1.Page.Scale.Y := 1;
 end;
@@ -221,8 +234,12 @@ end;
 
 procedure TForm1.ToolBar1Resize(Sender: TObject);
 begin
-  if Preview1 <> nil then
-    Preview1.Height := Clientheight - Preview1.Position.X - 20;
+  ScrollBox1.Height := ClientHeight - Toolbar1.Height;
+end;
+
+function TForm1.WidthZoom: single;
+begin
+  result := (ScrollBox1.Width - 130) / Preview1.PaintBox1.Width;
 end;
 
 procedure TForm1.ZoomBoxChange(Sender: TObject);
@@ -235,16 +252,20 @@ begin
     3: r := 1;
     4: r := 1.25;
     5: r := 1.5;
-    6: r := 1;
-    7: r := 0.6;
+    6: r := WidthZoom;
+    7: r := HeightZoom;
   end;
-  Preview1.page.scale.x := r;
-  Preview1.page.scale.y := r;
+  Preview1.Zoom := r;
+end;
+
+procedure TForm1.ZoomBoxClosePopup(Sender: TObject);
+begin
+  ZoomBoxChange(self);
 end;
 
 procedure TForm1.setPageZoom(const zoom: Single);
 begin
-  Preview1.Width := ClientWidth - ScrollVert.Width;
+//  Preview1.Width := ClientWidth - ScrollVert.Width;
 end;
 
 end.

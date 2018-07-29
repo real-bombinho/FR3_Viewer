@@ -10,6 +10,7 @@ object Form1: TForm1
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
+  OnMouseWheel = FormMouseWheel
   OnResize = FormResize
   DesignerMasterStyle = 0
   object ToolBar1: TToolBar
@@ -40,6 +41,7 @@ object Form1: TForm1
       Position.Y = 8.000000000000000000
       TabOrder = 2
       OnChange = ZoomBoxChange
+      OnClosePopup = ZoomBoxClosePopup
     end
     object SpeedButton3: TSpeedButton
       Hint = 'Load file'
@@ -61,18 +63,12 @@ object Form1: TForm1
       Text = 'swap'
       OnClick = SpeedButton4Click
     end
-  end
-  object ScrollVert: TScrollBar
-    Align = Right
-    Max = 594.000000000000000000
-    SmallChange = 0.000000000000000000
-    Orientation = Vertical
-    Position.X = 717.000000000000000000
-    Position.Y = 33.000000000000000000
-    Size.Width = 22.000000000000000000
-    Size.Height = 694.000000000000000000
-    Size.PlatformDefault = False
-    TabOrder = 3
+    object Label1: TLabel
+      Position.X = 488.000000000000000000
+      Position.Y = 8.000000000000000000
+      Text = 'Label1'
+      TabOrder = 3
+    end
   end
   object PrintDialog1: TPrintDialog
     Options = [poPrintToFile]
@@ -207,6 +203,16 @@ object Form1: TForm1
     Filter = 'fr3|*.fr3|*.*|*.*'
     Left = 408
     Top = 72
+  end
+  object ScrollBox1: TScrollBox
+    Align = Bottom
+    Position.Y = 40.000000000000000000
+    Size.Width = 739.000000000000000000
+    Size.Height = 687.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 5
+    Viewport.Width = 739.000000000000000000
+    Viewport.Height = 687.000000000000000000
   end
   object XMLTransform1: TXMLTransform
     Left = 488
