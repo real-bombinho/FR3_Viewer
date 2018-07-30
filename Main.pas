@@ -135,7 +135,7 @@ begin
   ZoomBox.Items.Add('200%');
   ZoomBox.Items.Add('PageWidth');
   ZoomBox.Items.Add('WholePage');
-  ZoomBox.ItemIndex := 0;
+  ZoomBox.ItemIndex := 6;
 
 //  showmessage(fr.Name);
 end;

@@ -65,7 +65,29 @@ TDPFont = class
     function getHeight: Single;
     procedure setHeight(const Value: single);
   public
+  type
+
+    TMetrics = class
+    private
+      FCaps: single;
+      FAscender: single;
+      FBottom: single;
+      FBase: single;
+      FTop: single;
+      FDescender: single;
+    public
+      property Top: single read FTop;
+      property Ascender: single read FAscender;
+      property Base: single read FBase;
+      property Caps: single read FCaps;
+      property Descender: single read FDescender;
+      property Bottom: single read FBottom;
+      constructor Create(const Canvas: TCanvas; const Font: TFont);
+    end;
+
+   var
     VFactor: single;
+    Metrics: TMetrics;
     property CharSet: Byte read FCharset write FCharset;
     property Color: TAlphaColor read FColor write FColor;
     property Height: single read getHeight write setHeight;
@@ -459,7 +481,7 @@ begin
   Height := 22;
   Width := 100;
   FHalign := TTextAlign.Leading;
-  FVAlign := TTextAlign.Center;
+  FVAlign := TTextAlign.Leading;
   setBackGroundColor(0);//TAlphaColors.Red);
   FName := 'TextBox' + inttostr(Page.FCount[FItemType]);
 end;
@@ -541,10 +563,29 @@ begin
     Canvas.Font.Family := Font.FName;
     Canvas.Font.Style := Font.FStyles;
   end;
+
+  p := r;
+  if Canvas.Font.Size > (18 * Font.VFactor) then
+  begin
+    Font.Metrics := TDPFont.TMetrics.Create(Canvas, Canvas.Font);
+    case FVAlign of
+      TTextAlign.Center: r.Top := ((r.Top + r.Bottom + Font.Metrics.Bottom -
+                    Canvas.TextHeight(FText)) / 2) - Font.Metrics.Ascender -
+                    ((- Font.Metrics.Ascender + Font.Metrics.Base) /2);
+      TTextAlign.Leading: r.Top := r.top - Font.Metrics.Ascender +
+                                    (4.5 * Font.VFactor);
+      TTextAlign.Trailing: r.Top := r.Bottom - Font.Metrics.Base -
+                                    (4.5 * Font.VFactor);
+    end;
+    r.Bottom := r.Top + Canvas.TextHeight(FText);
+  end;
+  r.Left := r.Left + (0.5 * HFactor);
   Canvas.Fill.Color := Font.Color;
   Canvas.FillText(r, FText, false, FOpacity, [{TFillTextFlag.ftRightToLeft}], FHAlign, FValign);
-  FFrame.Draw(Canvas, r, FOpacity);
-  FFrame.DrawGuide(Canvas, r);
+  FFrame.Draw(Canvas, p, FOpacity);
+//  FFrame.DrawGuide(Canvas, p, 0.8);  // show textbox size
+//  FFrame.DrawGuide(Canvas, r, 0.3);  // show adjusted textbox for larger fonts
+  Font.Metrics.Free;
   //Canvas.FillText(r, FText, false, 1, [{TFillTextFlag.ftRightToLeft}], TTextAlign.taCenter, TTextAlign.taCenter);
 end;
 
@@ -1328,7 +1369,7 @@ end;
 procedure TControlFrame.DrawGuide(Canvas: TCanvas; const ClipRect: TRectF;
   const Opacity: single = 1);
 
-const long: single = 20;
+const long: single = 15;
 var p, d: TPointF;
 
 begin
@@ -1451,6 +1492,45 @@ begin
     Line[i].Width := Value;
   end;
   FWidth := Value;
+end;
+
+{ TDPFont.TMetrics }
+
+constructor TDPFont.TMetrics.Create(const Canvas: TCanvas; const Font: TFont);
+var r: TRectF;
+    p: TPathData;
+    i: integer;
+begin
+  p := TPathData.Create;
+  canvas.Font.Family := Font.Family;
+  canvas.Font.Size := font.Size;
+  canvas.Font.Style := font.Style;
+  FTop := 0;
+  FBottom := Canvas.TextHeight('A') * canvas.Scale;
+  r.Right := Canvas.TextWidth('A') * canvas.Scale;
+  r.Bottom := Bottom;
+  r.Top := 0;
+  r.Left := 0;
+  p.Clear;
+  canvas.TextToPath(p, r, 'I', false, TTextAlign.Leading, TTextAlign.Trailing);
+  FAscender := p[0].Point.y;
+  FBase := p[1].Point.y;
+  for i := 1 to p.Count - 1 do
+  begin
+    if p[i].Point.y < Ascender then FAscender := p[i].Point.y;
+    if p[i].Point.y > Base then FBase := p[i].Point.y;
+  end;
+  p.Clear;
+  canvas.TextToPath(p, r, 'y', false, TTextAlign.Leading, TTextAlign.Trailing);
+  FCaps := p[1].Point.y;
+  FDescender := p[0].Point.y;
+  for i := 1 to p.Count - 1 do
+  begin
+    if p[i].Point.y < Caps then FCaps := p[i].Point.y;
+    if p[i].Point.y > Descender then FDescender := p[i].Point.y;
+  end;
+  p.Free;
+
 end;
 
 end.
