@@ -37,8 +37,11 @@ type
     procedure PaintBox1Paint(Sender: TObject; Canvas: TCanvas);
   private
     FCurrentPage: TDPPage;
+    FZoom: single;
+    procedure setZoom(const Value: single);
   public
     Report1: TDPReport;
+    property Zoom: single read FZoom write setZoom;
     property CurrentPage: TDPPage read FCurrentPage write FCurrentPage;
     procedure swap;
     function PrintRect(const PageWidth: integer): TRectF;
@@ -66,7 +69,7 @@ end;
 
 procedure TPreview.FrameResize(Sender: TObject);
 begin
- Page.Height := Height;
+ //Page.Height := Height;
 // Page.Width := Height / FPapersize.X * FPaperSize.Y;
 end;
 
@@ -79,6 +82,17 @@ begin
     Canvas.FillRect(PaintBox1.BoundsRect, 1,1, AllCorners, 1);
     CurrentPage.Draw(Canvas);
   end;
+end;
+
+procedure TPreview.setZoom(const Value: single);
+begin
+  FZoom := Value;
+  Page.Scale.X := value;
+  Page.Scale.Y := value;
+  Width := (PaintBox1.Width * value) + 60;
+
+  Page.Height := PaintBox1.Height * value;
+  Height := Page.Height + 30;
 end;
 
 procedure TPreview.swap;
